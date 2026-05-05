@@ -1,0 +1,32 @@
+# This file will be mounted 
+log_level: INFO
+
+topics:
+  - "AI"
+  - "LLM"
+  - "large language model"
+  - "multimodal"
+  - "reasoning"
+  - "agent"
+  - "fine-tuning"
+  - "RLHF"
+
+sources:
+  - name: arxiv
+    type: pdf
+    url: "https://export.arxiv.org/api/query"
+
+consumer_queue_size: 500
+worker_count: 5
+storage_path: "/data/scrapped/"
+download_retry_count: 3
+download_timeout_seconds: 10
+crawler_rate_limit_seconds: 5
+
+# Redis
+redis_url: "redis://default:tcs@redis:6379"
+scheduled_crawl_job_stream_name: "pazyr_scheduled_crawl_jobs"
+processing_stream_name: "pazyr_processing_jobs"
+
+# Arxiv
+arxiv_batch_size: 100

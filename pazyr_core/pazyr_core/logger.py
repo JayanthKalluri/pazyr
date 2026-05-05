@@ -1,0 +1,69 @@
+import logging
+import queue
+from logging.handlers import QueueHandler, QueueListener
+from typing import Optional
+
+# Global state
+_log_queue: queue.Queue = queue.Queue()
+_listener: Optional[QueueListener] = None
+_initialized: bool = False
+
+
+def init_logger(level: int = logging.INFO) -> None:
+    """
+    Initialize global async logging system.
+    Must be called once at application startup.
+    """
+    global _listener, _initialized
+
+    if _initialized:
+        return
+
+    # Root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    root_logger.propagate = False
+
+    # Prevent duplicate handlers (important in reload/dev)
+    if not any(isinstance(h, QueueHandler) for h in root_logger.handlers):
+        queue_handler = QueueHandler(_log_queue)
+        root_logger.addHandler(queue_handler)
+
+    # Console handler (actual output)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(level)
+    stream_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s | %(levelname)7s | %(name)s | %(message)s [%(filename)s:%(lineno)d]"
+        )
+    )
+
+    # Listener thread
+    _listener = QueueListener(
+        _log_queue,
+        stream_handler,
+        respect_handler_level=True
+    )
+    _listener.start()
+
+    _initialized = True
+
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Get a logger instance for a module.
+    Usage: logger = get_logger(__name__)
+    """
+    return logging.getLogger(name)
+
+
+def shutdown_logger() -> None:
+    """
+    Gracefully stop the logging listener.
+    Call this during application shutdown.
+    """
+    global _listener
+
+    if _listener:
+        _listener.stop()
+        _listener = None

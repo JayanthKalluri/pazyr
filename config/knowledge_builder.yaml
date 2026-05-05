@@ -1,0 +1,50 @@
+log_level: INFO
+
+completed_folder_path: "/data/completed"
+
+# Redis specific configuration
+redis_url: "redis://default:tcs@redis:6379"
+processing_stream_name: "pazyr_processing_jobs"
+
+# Weaviate specific config
+weaviate:
+  host: "weaviate_db"
+  http_port: 5101
+  grpc_port: 50051
+
+# Ollama specific config
+ollama_api_endpoint: "http://host.docker.internal:11434"
+ollama_embedding_model: "nomic-embed-text"
+
+# Database config (recommended)
+postgres:
+  host: "postgres_db"
+  port: 5432
+  database: "coe"
+  user: "admin"
+
+queries:
+  create_job_table:
+    query: |
+      CREATE TABLE IF NOT EXISTS {table_name} (
+        job_id TEXT NOT NULL,
+        stage TEXT NOT NULL,
+        status TEXT NOT NULL,
+        error_code TEXT,
+        updated_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (job_id, stage)
+      );
+
+  insert_job_status:
+    query: |
+      INSERT INTO {table_name} (
+        job_id, stage, status, error_code, updated_at
+      )
+      VALUES (
+        %(job_id)s, %(stage)s, %(status)s, %(error_code)s, NOW()
+      )
+      ON CONFLICT (job_id, stage)
+      DO UPDATE SET
+        status = EXCLUDED.status,
+        error_code = EXCLUDED.error_code,
+        updated_at = NOW();
