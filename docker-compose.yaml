@@ -1,0 +1,91 @@
+services:
+  ingestor:
+    build:
+      context: .
+      dockerfile: services/ingestor/Dockerfile
+    container_name: pazyr_ingestor
+    restart: unless-stopped
+    environment:
+      - CONFIG_FILEPATH=/app/config.yaml
+    volumes:
+      - data:/data
+      - ./config/ingestor.yaml:/app/config.yaml:ro
+    networks:
+      - pazyr_network
+
+
+  knowledge_builder:
+    build:
+      context: .
+      dockerfile: services/knowledge_builder/Dockerfile
+    container_name: pazyr_knowledge_builder
+    restart: unless-stopped
+    environment:
+      - CONFIG_FILEPATH=/app/config.yaml
+    volumes:
+      - data:/data
+      - ./config/knowledge_builder.yaml:/app/config.yaml:ro
+    networks:
+      - pazyr_network
+
+
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis_data:/data
+      - ./infra/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    networks:
+      - pazyr_network
+
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.36.8
+    container_name: weaviate_db
+    ports:
+      - 5101:8080
+      - 50051:50051
+    command: 
+      - --host=0.0.0.0
+      - --port=8080
+      - --schema=http
+    restart: unless-stopped
+    env_file:
+      - ./infra/weaviate/weaviate.env
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - pazyr_network
+
+  postgres:
+    image: postgres:18.2
+    container_name: postgres_db
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    env_file:
+      - ./infra/postgres/postgres.env
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - pazyr_network
+
+volumes:
+  data:
+    name: pazyr_shared_data
+  redis_data:
+    name: pazyr_redis_data
+  weaviate_data:
+    name: pazyr_weaviate_data
+  postgres_data:
+    name: pazyr_postgres_data
+
+networks:
+  pazyr_network:
+    name: pazyr_network
+    driver: bridge

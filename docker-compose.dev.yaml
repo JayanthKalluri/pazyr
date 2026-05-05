@@ -1,0 +1,24 @@
+services:
+  ingestor:
+    profiles: ["v1-uat"]
+    volumes:
+      - ./volumes/data:/data
+
+
+  knowledge_builder:
+    profiles: ["v1-dev"]
+    volumes:
+      - ./volumes/data:/data
+
+  redis:
+    profiles: ["infra"]
+
+  weaviate:
+    profiles: ["infra"]
+
+  postgres:
+    profiles: ["infra"]
+
+networks:
+  pazyr_network:
+    external: true
