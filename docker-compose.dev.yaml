@@ -3,7 +3,7 @@ services:
     profiles: ["v1-uat"]
     volumes:
       - ./volumes/data:/data
-
+      - ./services/ingestor:/app/ingestor
 
   knowledge_builder:
     profiles: ["v1-dev"]
