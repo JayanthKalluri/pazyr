@@ -1,0 +1,14 @@
+Entities:
+- Paper
+- Concept
+- Domain
+- User
+- Difficulty
+
+Relationships:
+- USES
+- BELONGS_TO
+- CITES
+- REQUIRES
+- SIMILAR_TO
+- HAS_LEVEL

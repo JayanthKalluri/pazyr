@@ -1,0 +1,45 @@
+ # This file will be mounted 
+service_name: discovery-engine
+
+logging:
+  level: INFO
+
+sources:
+  - name: arxiv
+    type: pdf
+    url: "https://export.arxiv.org/api/query"
+
+topics:
+  - "AI"
+  - "LLM"
+  - "large language model"
+  - "multimodal"
+  - "reasoning"
+  - "agent"
+  - "fine-tuning"
+  - "RLHF"
+
+workers:
+  count: 3
+  queue_size: 500
+
+# storage:
+#   path: "/data/scrapped/"
+
+# download:
+#   retry_count: 5
+#   timeout_seconds: 10
+
+crawler:
+  rate_limit_seconds: 5
+
+redis:
+  host: redis
+  port: 6379
+
+streams:
+  scheduled_crawl_job: pazyr_scheduled_crawl_jobs
+  processing: pazyr_processing_jobs
+
+arxiv:
+  batch_size: 100

@@ -1,15 +1,18 @@
 services:
-  ingestor:
+  pazyr_discovery_engine:
     build:
       context: .
-      dockerfile: services/ingestor/Dockerfile
-    container_name: pazyr_ingestor
+      dockerfile: services/discovery_engine/Dockerfile
+    image: localhost/pazyr_discovery_engine:v0.1.0
+    container_name: pazyr_discovery_engine
     restart: unless-stopped
     environment:
       - CONFIG_FILEPATH=/app/config.yaml
+    env_file:
+      - services/discovery_engine/.env
     volumes:
       - data:/data
-      - ./config/ingestor.yaml:/app/config.yaml:ro
+      - ./config/discovery_engine.yaml:/app/config.yaml:ro
     networks:
       - pazyr_network
 
@@ -87,5 +90,4 @@ volumes:
 
 networks:
   pazyr_network:
-    name: pazyr_network
-    driver: bridge
+    external: true
