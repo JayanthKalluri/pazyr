@@ -99,11 +99,10 @@
 # async def close_redis_client(name: str):
 #     with _lock:
 #         client = _clients.pop(name, None)
-    
+
 #     if client:
 #         await client.close()
-        
-        
+
 
 from threading import Lock
 
@@ -134,7 +133,9 @@ class _RedisConnection:
         """
         return self._client
 
-    async def publish(self, stream: str, payload: str, max_len: int | None = None) -> str:
+    async def publish(
+        self, stream: str, payload: str, max_len: int | None = None
+    ) -> str:
         """
         Publish a message to a Redis stream.
 
@@ -147,19 +148,30 @@ class _RedisConnection:
         Returns:
             str: The ID of the published message.
         """
-        kwargs = {}
+        try:
+            kwargs = {}
 
-        if max_len is not None:
-            kwargs["maxlen"] = max_len
-            kwargs["approximate"] = True
+            if max_len is not None:
+                kwargs["maxlen"] = max_len
+                kwargs["approximate"] = True
 
-        return await self._client.xadd(
-            stream,
-            {"data": payload},
-            **kwargs,
-        )
+            return await self._client.xadd(
+                stream,
+                {"data": payload},
+                **kwargs,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to publish message to stream '{stream}': {e}") from e
 
-    async def consume(self, stream: str, group: str, consumer: str, count: int = 1, block: int=0) -> list[tuple[str, str]]:
+    async def consume(
+        self,
+        stream: str,
+        group: str,
+        consumer: str,
+        count: int = 1,
+        block: int = 0,
+        id: str = ">",
+    ) -> list[tuple[str, str]]:
         """
         Consume messages from a Redis stream using a consumer group.
 
@@ -169,33 +181,39 @@ class _RedisConnection:
             consumer (str): The consumer name within the group.
             count (int, optional): Maximum number of messages to read. Defaults to 1.
             block (int, optional): Block time in milliseconds. Defaults to 0 (non-blocking).
+            id (str, optional): The ID to start reading from. Defaults to ">" (new messages).
 
         Returns:
             list[tuple[str, str]]: A list of (message_id, payload) tuples.
         """
-        response = await self._client.xreadgroup(
-            groupname=group,
-            consumername=consumer,
-            streams={stream: ">"},
-            count=count,
-            block=block,
-        )
-        
-        if not response:
-            return []
+        try:
+            response = await self._client.xreadgroup(
+                groupname=group,
+                consumername=consumer,
+                streams={stream: id},
+                count=count,
+                block=block,
+            )
 
-        messages = []
+            if not response:
+                return []
 
-        for _, entries in response:
-            for message_id, data in entries:
-                messages.append(
-                    (
-                        message_id,
-                        data["data"],
+            messages = []
+
+            for _, entries in response:
+                for message_id, data in entries:
+                    messages.append(
+                        (
+                            message_id,
+                            data["data"],
+                        )
                     )
-                )
 
-        return messages      
+            return messages
+        except redis.exceptions.ResponseError as e:
+            if "NOGROUP" in str(e):
+                return []
+            raise
 
     async def ack(self, stream: str, group: str, message_id: str) -> None:
         """
@@ -206,13 +224,19 @@ class _RedisConnection:
             group (str): The consumer group name.
             message_id (str): The ID of the message to acknowledge.
         """
-        await self._client.xack(
-            stream,
-            group,
-            message_id,
-        )
+        try:
+            await self._client.xack(
+                stream,
+                group,
+                message_id,
+            )
+        except redis.exceptions.ResponseError as e:
+            if "NOGROUP" not in str(e):
+                raise
 
-    async def create_consumer_group(self, stream: str, group: str, start_id: str = "0") -> None:
+    async def create_consumer_group(
+        self, stream: str, group: str, start_id: str = "0"
+    ) -> None:
         """
         Create a consumer group for a Redis stream.
 
@@ -223,7 +247,7 @@ class _RedisConnection:
 
         Notes:
             If the group already exists, the BUSYGROUP error is ignored.
-        """   
+        """
         try:
             await self._client.xgroup_create(
                 name=stream,
@@ -242,19 +266,24 @@ class _RedisConnection:
         Returns:
             bool: True if the server responds, False otherwise.
         """
-        return await self._client.ping()
-          
+        try:
+            return await self._client.ping()
+        except Exception:
+            return False
+
     async def close(self) -> None:
         """
         Close the Redis client connection.
         """
-        await self._client.aclose()
-
+        try:
+            await self._client.aclose()
+        except Exception as e:
+            raise RuntimeError(f"Failed to close Redis client: {e}") from e
 
 class RedisClient:
     _clients: dict[str, _RedisConnection] = {}
     _lock = Lock()
-    
+
     @classmethod
     def init(cls, name: str, redis_url: str) -> _RedisConnection:
         """
@@ -294,8 +323,8 @@ class RedisClient:
             RuntimeError: If the client with the given name is not initialized.
         """
         if name not in cls._clients:
-            raise RuntimeError("Redis client '{name}' is not initialized.")
-        
+            raise RuntimeError(f"Redis client '{name}' is not initialized.")
+
         return cls._clients[name]
 
     @classmethod
@@ -329,4 +358,3 @@ class RedisClient:
 
         for client in clients:
             await client.close()
-  

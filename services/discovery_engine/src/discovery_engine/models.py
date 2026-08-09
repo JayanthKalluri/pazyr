@@ -1,7 +1,7 @@
 from pazyr_core.settings import LoggingConfig, RedisConfig
 from pazyr_core.types import Website
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 
 class _WorkerConfig(BaseModel):

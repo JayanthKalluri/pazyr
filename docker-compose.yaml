@@ -11,10 +11,10 @@ services:
     env_file:
       - services/discovery_engine/.env
     volumes:
-      - data:/data
+      # - data:/data
       - ./config/discovery_engine.yaml:/app/config.yaml:ro
     networks:
-      - pazyr_network
+      - coe-network
 
 
   knowledge_builder:
@@ -29,7 +29,7 @@ services:
       - data:/data
       - ./config/knowledge_builder.yaml:/app/config.yaml:ro
     networks:
-      - pazyr_network
+      - coe-network
 
 
 
@@ -44,7 +44,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - pazyr_network
+      - coe-network
 
 
   weaviate:
@@ -63,7 +63,7 @@ services:
     volumes:
       - weaviate_data:/var/lib/weaviate
     networks:
-      - pazyr_network
+      - coe-network
 
   postgres:
     image: postgres:18.2
@@ -76,7 +76,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     networks:
-      - pazyr_network
+      - coe-network
 
 volumes:
   data:
@@ -89,5 +89,5 @@ volumes:
     name: pazyr_postgres_data
 
 networks:
-  pazyr_network:
+  coe-network:
     external: true

@@ -42,8 +42,12 @@ async def start():
         name=config.service_name,
         redis_url=config.redis.url
     )
-    await redis_client.create_consumer_group(stream=config.streams.scheduled_crawl_job, group=DEFAULT_GROUP_NAME)
-    await redis_client.create_consumer_group(stream=config.streams.processing, group=DEFAULT_GROUP_NAME)
+    if not await redis_client.ping():
+        logger.error("Redis is not reachable")
+        await shutdown_event.wait()
+
+    await redis_client.create_consumer_group(stream=config.streams.scheduled_crawl_job, group=DISCOVERY_GROUP_NAME)
+    await redis_client.create_consumer_group(stream=config.streams.processing, group=ANALYSER_GROUP_NAME)
 
     crawler_tasks = start_crawlers(
         shutdown_event=shutdown_event,
@@ -86,14 +90,14 @@ async def main():
 def run():
     init_logger(level=config.logging.level)
     logger = get_logger(__name__)
-    logger.info("Initializing Ingestor.")
+    logger.info("Initializing Discovery Engine.")
 
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        logger.exception(f"Fatal error: {e}")
+        logger.exception("Fatal error")
     finally:
         logger.info("Shutting down logger...")
         shutdown_logger()

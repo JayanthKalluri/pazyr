@@ -7,15 +7,15 @@ from pazyr_core.clients.redis_client import RedisClient
 from pazyr_core.logging.logger import get_logger
 from pazyr_core.types import Artifact
 
-from pazyr_core import constants
-
 from ..config import config
+from ..constants import *
 
 log = get_logger(__name__)
 
 
 class ArxivCrawler:
     def __init__(self):
+        log.debug("ArxivCrawler initialized.")
         # ssl_context = ssl.create_default_context(cafile=certifi.where())
         # connector = aiohttp.TCPConnector(ssl=ssl_context)
         self.session = aiohttp.ClientSession(
@@ -24,17 +24,13 @@ class ArxivCrawler:
         )
 
     def build_arxiv_query(self, topics):
-        category_query = (
-            "cat:cs.CL OR cat:cs.LG OR cat:cs.AI OR cat:stat.ML OR cat:cs.CV"
-        )
+        category_query = ("cat:cs.CL OR cat:cs.LG OR cat:cs.AI OR cat:stat.ML OR cat:cs.CV")
         keyword_query = " OR ".join(f'all:"{topic}"' for topic in topics)
         query = f"({category_query}) AND ({keyword_query})"
         log.debug(f"Built arXiv query: {query}")
         return query
 
-    async def fetch_arxiv_papers(
-        self, base_url: str, topics: list, start_idx: int, max_results: int
-    ):
+    async def fetch_arxiv_papers(self, base_url: str, topics: list, start_idx: int, max_results: int):
         query = self.build_arxiv_query(topics)
         params = {
             "search_query": query,
@@ -44,9 +40,7 @@ class ArxivCrawler:
             "sortOrder": "descending",
         }
 
-        log.debug(
-            f"Fetching arXiv papers: start_idx={start_idx}, max_results={max_results}"
-        )
+        log.debug(f"Fetching arXiv papers: start_idx={start_idx}, max_results={max_results}")
         try:
             async with self.session.get(base_url, params=params) as response:
                 response.raise_for_status()
@@ -105,11 +99,11 @@ class ArxivCrawler:
                 )
 
                 log.debug(f"Queueing artifact: {arxiv_id} - {title[:50]}")
-                await redis_client.push_to_stream(
-                    constants.DOWNLOADER_STREAM_NAME_REDIS,
+                await redis_client.publish(
+                    config.streams.processing,
                     artifact_obj.model_dump_json(),
                 )
-            except Exception as e:
+            except (AttributeError, ValueError, TypeError, aiohttp.ClientError) as e:
                 log.error(f"Error parsing entry {entry}: {e!s}")
                 continue
 
@@ -121,7 +115,8 @@ class ArxivCrawler:
             raise ValueError("ArXiv base URL not configured")
 
         start_idx = 0
-        batch_size = config.arxiv_batch_size
+        batch_size = config.arxiv.batch_size
+        
 
         while True:
             log.debug(f"Fetching batch starting at index {start_idx}")
@@ -147,9 +142,7 @@ class ArxivCrawler:
         await self.session.close()
 
 
-async def crawl_arxiv(
-    topics: list, start_date: datetime, semaphore: asyncio.Semaphore
-):
+async def crawl_arxiv(topics: list, start_date: datetime, semaphore: asyncio.Semaphore):
     crawler = ArxivCrawler()
 
     async with semaphore:

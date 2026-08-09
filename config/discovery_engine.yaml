@@ -36,6 +36,8 @@ crawler:
 redis:
   host: redis
   port: 6379
+  username: default
+  password: redispass
 
 streams:
   scheduled_crawl_job: pazyr_scheduled_crawl_jobs

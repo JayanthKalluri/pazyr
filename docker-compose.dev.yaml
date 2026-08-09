@@ -1,9 +1,10 @@
 services:
-  ingestor:
+  pazyr_discovery_engine:
     profiles: ["v1-uat"]
     volumes:
       - ./volumes/data:/data
-      - ./services/ingestor:/app/ingestor
+    networks:
+      - data-network
 
   knowledge_builder:
     profiles: ["v1-dev"]
@@ -20,5 +21,7 @@ services:
     profiles: ["infra"]
 
 networks:
-  pazyr_network:
+  coe-network:
+    external: true
+  data-network:
     external: true

@@ -47,7 +47,7 @@ class RedisConfig(BaseSettings):
         if not self.password:
             raise RuntimeError("Required env variable REDIS_PASSWORD is not set, set and try again.")
 
-        return f"redis://{self.username}:{self.password.get_secret_value()}@{self.host}:{self.port}/{self.database}" 
+        return f"redis://{self.username}:{self.password.get_secret_value()}@{self.host}:{self.port}" 
 
 # class KBConfig(BaseModel):
 #     log_level: Literal["INFO", "DEBUG", "ERROR", "WARNING"]

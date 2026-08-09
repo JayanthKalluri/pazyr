@@ -1,7 +1,9 @@
 import logging
 import queue
+from pathlib import Path
 from logging.handlers import QueueHandler, QueueListener
 from threading import Lock
+from ..constants import *
 
 # Global state
 _log_queue: queue.Queue = queue.Queue()
@@ -24,7 +26,7 @@ def init_logger(level: int = logging.INFO) -> None:
         # Root logger
         root_logger = logging.getLogger()
         root_logger.setLevel(level)
-        root_logger.propagate = False
+        # root_logger.propagate = False
 
         # Prevent duplicate handlers (important in reload/dev)
         if not any(isinstance(h, QueueHandler) for h in root_logger.handlers):
@@ -34,7 +36,7 @@ def init_logger(level: int = logging.INFO) -> None:
         # Console handler (actual output)
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(level)
-        stream_handler.setFormatter(logging.Formatter("%(asctime)s | %(levelname)7s | %(name)s | %(message)s [%(filename)s:%(lineno)d]"))
+        stream_handler.setFormatter(logging.Formatter(DEFAULT_LOG_FORMAT))
 
         # Listener thread
         _listener = QueueListener(
@@ -65,5 +67,7 @@ def shutdown_logger() -> None:
     if _listener:
         _listener.stop()
         _listener = None
-    
+
+    root_logger = logging.getLogger()
+    root_logger.handlers = [h for h in root_logger.handlers if not isinstance(h, QueueHandler)]
     _initialized = False
