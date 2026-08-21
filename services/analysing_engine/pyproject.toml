@@ -1,0 +1,33 @@
+[project]
+name = "analysing_engine"
+version = "0.1.0"
+description = "Analysing service for Pazyr"
+requires-python = ">=3.12,<3.13"
+authors= [
+    { name = "Pazye Team" }
+]
+
+dependencies = [
+  "litellm>=1.96.2",
+  "pazyr-core",
+  "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+analysing-engine = "analysing_engine.main:run"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/analysing_engine"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/analysing_engine"
+]
+
+[tool.uv.sources]
+pazyr-core = { path = "../../packages/pazyr_core-0.1.0-py3-none-any.whl" }

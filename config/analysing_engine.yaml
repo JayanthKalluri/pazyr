@@ -1,0 +1,25 @@
+service_name: analysing_engine
+
+logging:
+  level: INFO
+
+redis:
+  host: localhost
+  port: 6379
+
+database:
+  host: postgresql
+  port: 5432
+
+ai:
+  llm:
+    provider: ollama
+    model: gpt-oss:20b-cloud
+    endpoint: http://localhost:11434
+    api_key: ollama
+
+  embeddings:
+    provider: ollama
+    model: nomic-embed-text
+    endpoint: http://host.docker.internal:11434
+    api_key: ollama

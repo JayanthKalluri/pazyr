@@ -2,8 +2,7 @@
 name = "discovery_engine"
 version = "0.1.0"
 description = "Discovery service for Pazyr"
-requires-python = ">=3.12"
-
+requires-python = ">=3.12,<3.13"
 authors = [
     { name = "Pazyr Team" }
 ]
